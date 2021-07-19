@@ -89,6 +89,7 @@ namespace pimoroni {
 
     bool available();
     int16_t read();
+    void clear();
   };
 
 }
