@@ -1,9 +1,3 @@
-/**
- * Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
 #include <stdio.h>
 #include <math.h>
 #include <cstdint>
@@ -15,13 +9,12 @@
 //#include "ws2812.hpp"
 
 // Set how many LEDs you have
-const uint N_LEDS = 120;
+const uint N_LEDS = 30;
 
 #include "common/pimoroni_common.hpp"
 #include "breakout_encoder.hpp"
 #include "rgbled.hpp"
-
-#include "autorepeat.hpp"
+#include "button.hpp"
 
 using namespace pimoroni;
 
@@ -37,8 +30,8 @@ const uint PIN_DAT = 15; // Used for both APA102 and WS2812
 
 const float pi = 3.14159265358979323846f;
 
-AutoRepeat ar_button_a;
-AutoRepeat ar_button_b;
+Button button_a(BUTTON_A);
+Button button_b(BUTTON_B);
 
 RGBLED led(LED_R, LED_G, LED_B);
 
@@ -103,9 +96,6 @@ void gauge(uint v, uint vmax = 100) {
 int main() {
     stdio_init_all();
 
-    gpio_init(BUTTON_A); gpio_pull_up(BUTTON_A);
-    gpio_init(BUTTON_B); gpio_pull_up(BUTTON_B);
-
     plasma::setup_pio(pio0, 0, plasma::DEFAULT_SERIAL_FREQ, PIN_DAT, PIN_CLK);
 
     // Trigger DMA on a timer, targeting ~60FPS
@@ -158,8 +148,8 @@ int main() {
                 }
             }
         }
-        bool a_pressed = ar_button_a.next(t, !gpio_get(BUTTON_A));
-        bool b_pressed = ar_button_b.next(t, !gpio_get(BUTTON_B));
+        bool a_pressed = button_a.read();
+        bool b_pressed = button_b.read();
 
         if(b_pressed) cycle = true;
 

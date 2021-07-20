@@ -10,6 +10,7 @@ target_link_libraries(plasma2040
         breakout_encoder
         pimoroni_i2c
         rgbled
+        button
         )
 
 pico_add_extra_outputs(plasma2040)

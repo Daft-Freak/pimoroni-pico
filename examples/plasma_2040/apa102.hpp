@@ -1,3 +1,14 @@
+/**
+ * Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+/*
+This code is significantly modified from the PIO apa102 example
+found here: https://github.com/raspberrypi/pico-examples/tree/master/pio/apa102
+*/
+
 #pragma once
 
 #include "apa102.pio.h"
@@ -53,7 +64,7 @@ bool dma_timer_callback(struct repeating_timer *t) {
 void __isr dma_complete() {
   if (dma_hw->ints0 & (1u << dma_channel)) {
     dma_hw->ints0 = (1u << dma_channel); // clear irq flag
-    //_pio->txf[_sm] = 0xFFFFFFFF; // Output the APA102 end-of-frame bytes
+    _pio->txf[_sm] = 0xFFFFFFFF; // Output the APA102 end-of-frame bytes
   }
 }
 
