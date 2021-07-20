@@ -4,12 +4,7 @@
 
 #include "pico/stdlib.h"
 
-// Pick *one*!
-#include "apa102.hpp"
-//#include "ws2812.hpp"
-
-// Set how many LEDs you have
-const uint N_LEDS = 30;
+#include "plasma2040.hpp"
 
 #include "common/pimoroni_common.hpp"
 #include "breakout_encoder.hpp"
@@ -18,22 +13,23 @@ const uint N_LEDS = 30;
 
 using namespace pimoroni;
 
-const uint LED_R = 16;
-const uint LED_G = 17;
-const uint LED_B = 18;
+// Set how many LEDs you have
+const uint N_LEDS = 30;
 
-const uint BUTTON_A = 12;
-const uint BUTTON_B = 13;
+// Pick *one* LED type by uncommenting the relevant line below:
 
-const uint PIN_CLK = 14; // Used only for APA102
-const uint PIN_DAT = 15; // Used for both APA102 and WS2812
+// APA102-style LEDs with Data/Clock lines. AKA DotStar
+//plasma::APA102 led_strip(N_LEDS, pio0, 0, plasma::PIN_DAT, plasma::PIN_CLK);
 
-const float pi = 3.14159265358979323846f;
+// WS28X-style LEDs with a single signal line. AKA NeoPixel
+plasma::WS2812 led_strip(N_LEDS, pio0, 0, plasma::PIN_DAT);
 
-Button button_a(BUTTON_A);
-Button button_b(BUTTON_B);
 
-RGBLED led(LED_R, LED_G, LED_B);
+
+Button button_a(plasma::BUTTON_A);
+Button button_b(plasma::BUTTON_B);
+
+RGBLED led(plasma::LED_R, plasma::LED_G, plasma::LED_B);
 
 I2C i2c(BOARD::PICO_EXPLORER);
 BreakoutEncoder enc(&i2c);
@@ -45,50 +41,25 @@ enum ENCODER_MODE {
     TIME
 };
 
-plasma::RGB buffer[N_LEDS];
-
-void hsv_to_rgb(plasma::RGB *led, float h, float s, float v) {
-    float i = floor(h * 6.0f);
-    float f = h * 6.0f - i;
-    v *= 255.0f;
-    uint8_t p = v * (1.0f - s);
-    uint8_t q = v * (1.0f - f * s);
-    uint8_t t = v * (1.0f - (1.0f - f) * s);
-
-    switch (int(i) % 6) {
-      case 0: led->r = v; led->g = t; led->b = p; break;
-      case 1: led->r = q; led->g = v; led->b = p; break;
-      case 2: led->r = p; led->g = v; led->b = t; break;
-      case 3: led->r = p; led->g = q; led->b = v; break;
-      case 4: led->r = t; led->g = p; led->b = v; break;
-      case 5: led->r = v; led->g = p; led->b = q; break;
-    }
-}
-
-void set_brightness(uint8_t b) {
-    for (auto i = 0u; i < N_LEDS; ++i) {
-        buffer[i].brightness(b);
-    }
-}
 
 void colour_cycle(float hue, float t, float angle) {
     t /= 200.0f;
 
-    for (auto i = 0u; i < N_LEDS; ++i) {
-        float offset = (pi * i) / N_LEDS;
+    for (auto i = 0u; i < led_strip.num_leds; ++i) {
+        float offset = (M_PI * i) / led_strip.num_leds;
         offset = sinf(offset + t) * angle;
-        hsv_to_rgb(&buffer[i], (hue + offset) / 360.0f, 1.0f, 1.0f);
+        led_strip.set_hsv(i, (hue + offset) / 360.0f, 1.0f, 1.0f);
     }
 }
 
 void gauge(uint v, uint vmax = 100) {
-    uint light_pixels = N_LEDS * v / vmax;
+    uint light_pixels = led_strip.num_leds * v / vmax;
 
-    for (auto i = 0u; i < N_LEDS; ++i) {
+    for (auto i = 0u; i < led_strip.num_leds; ++i) {
         if(i < light_pixels) {
-            buffer[i].rgb(0, 255, 0);
+            led_strip.set_rgb(i, 0, 255, 0);
         } else {
-            buffer[i].rgb(255, 0, 0);
+            led_strip.set_rgb(i, 255, 0, 0);
         }
     }
 }
@@ -96,10 +67,7 @@ void gauge(uint v, uint vmax = 100) {
 int main() {
     stdio_init_all();
 
-    plasma::setup_pio(pio0, 0, plasma::DEFAULT_SERIAL_FREQ, PIN_DAT, PIN_CLK);
-
-    // Trigger DMA on a timer, targeting ~60FPS
-    plasma::start_dma(buffer, N_LEDS, 60);
+    led_strip.start(60);
 
     bool encoder_detected = enc.init();
     enc.clear_interrupt_flag();
@@ -136,7 +104,7 @@ int main() {
                         brightness += count;
                         brightness = std::min((int8_t)31, brightness);
                         brightness = std::max((int8_t)0, brightness);
-                        set_brightness(brightness);
+                        led_strip.set_brightness(brightness);
                         gauge(brightness, 31);
                         break;
                     case ENCODER_MODE::TIME:
@@ -174,7 +142,8 @@ int main() {
 
         if(cycle) colour_cycle(hue, t * speed / 100, (float)angle);
 
-        enc.set_led(buffer[1].r, buffer[1].g, buffer[1].b);
+        auto first_led = led_strip.get(0);
+        enc.set_led(first_led.r, first_led.g, first_led.b);
 
         // Sleep time controls the rate at which the LED buffer is updated
         // but *not* the actual framerate at which the buffer is sent to the LEDs
