@@ -36,13 +36,17 @@ APA102::APA102(uint num_leds, PIO pio, uint sm, uint pin_dat, uint pin_clk, uint
 }
 
 bool APA102::dma_timer_callback(struct repeating_timer *t) {
-    APA102 *cls = (APA102*)t->user_data;
-
-    while(dma_channel_is_busy(cls->dma_channel)) {}; // Block waiting for DMA finish
-    cls->pio->txf[cls->sm] = 0x00000000; // Output the APA102 start-of-frame bytes
-    dma_channel_set_trans_count(cls->dma_channel, cls->num_leds, false);
-    dma_channel_set_read_addr(cls->dma_channel, cls->buffer, true);
+    ((APA102*)t->user_data)->update();
     return true;
+}
+
+void APA102::update(bool blocking) {
+    while(dma_channel_is_busy(dma_channel)) {}; // Block waiting for DMA finish
+    pio->txf[sm] = 0x00000000; // Output the APA102 start-of-frame bytes
+    dma_channel_set_trans_count(dma_channel, num_leds, false);
+    dma_channel_set_read_addr(dma_channel, buffer, true);
+    if (!blocking) return;
+    while(dma_channel_is_busy(dma_channel)) {}; // Block waiting for DMA finish
 }
 
 bool APA102::start(uint fps) {

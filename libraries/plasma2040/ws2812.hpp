@@ -57,6 +57,7 @@ namespace plasma {
             WS2812(uint num_leds, PIO pio, uint sm, uint pin, uint freq=DEFAULT_SERIAL_FREQ);
             bool start(uint fps=60);
             bool stop();
+            void update(bool blocking=false);
             void set_hsv(uint32_t index, float h, float s, float v);
             void set_rgb(uint32_t index, uint8_t r, uint8_t g, uint8_t b);
             void set_brightness(uint8_t b);

@@ -35,12 +35,16 @@ WS2812::WS2812(uint num_leds, PIO pio, uint sm, uint pin, uint freq) : num_leds(
 }
 
 bool WS2812::dma_timer_callback(struct repeating_timer *t) {
-    WS2812 *cls = (WS2812*)t->user_data;
-
-    while(dma_channel_is_busy(cls->dma_channel)) {}; // Block waiting for DMA finish
-    dma_channel_set_trans_count(cls->dma_channel, cls->num_leds, false);
-    dma_channel_set_read_addr(cls->dma_channel, cls->buffer, true);
+    ((WS2812*)t->user_data)->update();
     return true;
+}
+
+void WS2812::update(bool blocking) {
+    while(dma_channel_is_busy(dma_channel)) {}; // Block waiting for DMA finish
+    dma_channel_set_trans_count(dma_channel, num_leds, false);
+    dma_channel_set_read_addr(dma_channel, buffer, true);
+    if (!blocking) return;
+    while(dma_channel_is_busy(dma_channel)) {}; // Block waiting for DMA finish
 }
 
 bool WS2812::start(uint fps) {
