@@ -104,6 +104,7 @@ jobs:
         tar xf gcc-*.tar.bz2
         cd gcc*/bin
         pwd >> $GITHUB_PATH
+        cp ../arm-none-eabi/lib/thumb/v6-m/nofp/libstdc++_nano.a ../arm-none-eabi/lib/thumb/v6-m/nofp/libstdc++.a
   
     - uses: actions/checkout@v2
       with:
